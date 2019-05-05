@@ -67,7 +67,9 @@ class Kooy
      * @param aTopic
      * @param aListener
      */
-    void addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener);
+    void addListener(const char *aTopic);
+
+    void publish(const char *topic);
   private:
     std::shared_ptr<KooyInternal> d;
 

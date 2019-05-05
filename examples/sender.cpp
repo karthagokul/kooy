@@ -18,10 +18,18 @@
 
 #include <iostream>
 #include "kooy.h"
+#include <unistd.h>
 
 int main()
 {
-
+  Kooy k;
+  k.start();
+  while(1)
+  {
+    std::string t1="sender-light";
+    k.publish(t1.c_str());
+    sleep(5);
+  }
   return 0;
 }
 

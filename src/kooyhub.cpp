@@ -31,7 +31,7 @@
 #include <cstring>
 
 #define HEARTBEAT_PORT 5555
-#define HEARTBEAT_SERVER "127.0.0.1"
+#define HEARTBEAT_SERVER "239.255.255.250"
 
 Subscriber::Subscriber(SubscribeListener *aListener, const std::string &aIpAddr,const int &aPort)
   :listener(aListener),ipAddress(aIpAddr),port(aPort)
@@ -60,6 +60,20 @@ void Subscriber::run()
   server.sin_family=AF_INET;
   server.sin_addr.s_addr=INADDR_ANY;
   server.sin_port=htons(HEARTBEAT_PORT);
+  u_int yes = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*) &yes, sizeof(yes)) < 0)
+    return ;
+  struct ip_mreq mreq;
+  mreq.imr_multiaddr.s_addr = inet_addr(HEARTBEAT_SERVER);
+  mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+  if (
+      setsockopt(
+        sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)
+        ) < 0
+      ){
+    perror("setsockopt");
+    return ;
+  }
   if (bind(sock,(struct sockaddr *)&server,length)<0)
     return ;
   fromlen = sizeof(struct sockaddr_in);
@@ -80,24 +94,24 @@ Publisher::Publisher(PublisherListener *aListener, const std::string &aIpAddr,co
 Publisher::~Publisher()
 {
   runner.join();
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
 }
 
 void Publisher::setTopic(const std::string &aTopic)
 {
-  std::cout<<"Setting "<<aTopic<<std::endl;
+  //std::cout<<"Setting "<<aTopic<<std::endl;
   topic=aTopic;
 }
 
 void Publisher::exec()
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
   runner=std::thread(&Publisher::run,this);
 }
 
 void Publisher::run()
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
   //Temporary
   int sock;
   size_t length, n;
@@ -106,6 +120,9 @@ void Publisher::run()
   char buffer[256];
   sock= socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) return ;
+  u_int yes = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*) &yes, sizeof(yes)) < 0)
+    return ;
   server.sin_family = AF_INET;
   hp = gethostbyname(HEARTBEAT_SERVER);
   if (hp==0) return ;
@@ -157,7 +174,7 @@ void KooyHub::subscriptionMonitor()
 
 void KooyHub::publish(const std::string &aTopic)
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
 
   //Cleanup the previous passive Requests
   KooyHub::publisherPoolCleanup();
@@ -171,7 +188,7 @@ void KooyHub::publish(const std::string &aTopic)
 
 void KooyHub::statusChanged(const std::string &aTopic,const PublishStatus &aStatus)
 {
-//  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //  std::cout<<__PRETTY_FUNCTION__<<std::endl;
   if(aStatus==PublishStatus::Success)
   {
     std::cout<<aTopic<< ": Publish Successful >"<<std::endl;
@@ -180,7 +197,7 @@ void KooyHub::statusChanged(const std::string &aTopic,const PublishStatus &aStat
   {
     std::cerr<<aTopic<< ": Publish Failed > "<<std::endl;
   }
-  std::cout<<"Publish Pool Count : "<<pubPool.size()<<std::endl;
+  //std::cout<<"Publish Pool Count : "<<pubPool.size()<<std::endl;
   return;
 }
 

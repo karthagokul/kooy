@@ -30,7 +30,8 @@ class KooyInternal
   public:
     bool start();
     bool stop();
-    void addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener);
+    void addListener(const char *aTopic);
+    void publish(const char *topic);
 
   private:
     std::shared_ptr<KooyHub> hub;
@@ -41,13 +42,11 @@ bool KooyInternal::start()
   // std::cout<<__PRETTY_FUNCTION__<<std::endl;
   hub=std::make_shared<KooyHub>(SERVER,PORT);
   hub->start();
-  //testing
-  sleep(1);
-  for(int i=0;i<100;i++)
-  {
-    std::string t1="bedroom-light";
-    hub->publish(t1);
-  }
+}
+
+void KooyInternal::publish(const char *topic)
+{
+  hub->publish(topic);
 }
 
 bool KooyInternal::stop()
@@ -55,7 +54,7 @@ bool KooyInternal::stop()
 
 }
 
-void KooyInternal::addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener)
+void KooyInternal::addListener(const char *aTopic)
 {
 
 }
@@ -78,7 +77,12 @@ bool Kooy::stop()
   return d->stop();
 }
 
-void Kooy::addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener)
+void Kooy::publish(const char *topic)
 {
-  return d->addListener(aTopic,aListener);
+  return d->publish(topic);
+}
+
+void Kooy::addListener(const char *aTopic)
+{
+  return d->addListener(aTopic);
 }

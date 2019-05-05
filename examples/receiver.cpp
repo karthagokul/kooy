@@ -27,7 +27,9 @@ int main()
   k.start();
   while(1)
   {
-    sleep(1);
+     std::string t1="reciver-light";
+    k.publish(t1.c_str());
+    sleep(5);
   }
   return 0;
 }
