@@ -38,15 +38,16 @@ class KooyInternal
 
 bool KooyInternal::start()
 {
- // std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  // std::cout<<__PRETTY_FUNCTION__<<std::endl;
   hub=std::make_shared<KooyHub>(SERVER,PORT);
   hub->start();
   //testing
   sleep(1);
-  std::string t1="bedroom-light";
-  hub->publish(t1);
-  std::string t2="kitchen-light";
-  hub->publish(t2);
+  for(int i=0;i<100;i++)
+  {
+    std::string t1="bedroom-light";
+    hub->publish(t1);
+  }
 }
 
 bool KooyInternal::stop()

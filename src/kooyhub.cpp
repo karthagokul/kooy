@@ -21,6 +21,18 @@
 #include <future>
 #include <unistd.h>
 
+//Heartbeat
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <cstring>
+
+#define HEARTBEAT_PORT 5555
+#define HEARTBEAT_SERVER "127.0.0.1"
+
 Subscriber::Subscriber(SubscribeListener *aListener, const std::string &aIpAddr,const int &aPort)
   :listener(aListener),ipAddress(aIpAddr),port(aPort)
 {
@@ -29,13 +41,35 @@ Subscriber::Subscriber(SubscribeListener *aListener, const std::string &aIpAddr,
 
 void Subscriber::exec()
 {
- // std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  // std::cout<<__PRETTY_FUNCTION__<<std::endl;
   runner=std::make_shared<std::thread>(&Subscriber::run,this);
 }
 
 void Subscriber::run()
 {
-  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //temporary
+  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  unsigned  int sock, length, fromlen, n;
+  struct sockaddr_in server;
+  struct sockaddr_in from;
+  char buf[1024];
+  sock=socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0)return ;
+  length = sizeof(server);
+  bzero(&server,length);
+  server.sin_family=AF_INET;
+  server.sin_addr.s_addr=INADDR_ANY;
+  server.sin_port=htons(HEARTBEAT_PORT);
+  if (bind(sock,(struct sockaddr *)&server,length)<0)
+    return ;
+  fromlen = sizeof(struct sockaddr_in);
+  while (1) {
+    n = recvfrom(sock,buf,1024,0,(struct sockaddr *)&from,&fromlen);
+    if (n < 0) return ;
+    printf("Recived %s\n",buf);
+    bzero(&buf,0);
+  }
+  //temporary end
 }
 
 Publisher::Publisher(PublisherListener *aListener, const std::string &aIpAddr,const int &aPort)
@@ -51,6 +85,7 @@ Publisher::~Publisher()
 
 void Publisher::setTopic(const std::string &aTopic)
 {
+  std::cout<<"Setting "<<aTopic<<std::endl;
   topic=aTopic;
 }
 
@@ -63,7 +98,26 @@ void Publisher::exec()
 void Publisher::run()
 {
   std::cout<<__PRETTY_FUNCTION__<<std::endl;
-  sleep(3);
+  //Temporary
+  int sock;
+  size_t length, n;
+  struct sockaddr_in server, from; // IP Addressing(ip, port, type) Stuff
+  struct hostent *hp; // DNS stuff
+  char buffer[256];
+  sock= socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) return ;
+  server.sin_family = AF_INET;
+  hp = gethostbyname(HEARTBEAT_SERVER);
+  if (hp==0) return ;
+  bcopy((char *)hp->h_addr, (char *)&server.sin_addr, hp->h_length);
+  server.sin_port = htons(HEARTBEAT_PORT);
+  length=sizeof(struct sockaddr_in);
+  bzero(buffer,256);
+  strcpy(buffer,topic.c_str());
+  n=sendto(sock,buffer,strlen(buffer),0, (struct sockaddr*)&server,length);
+  if (n < 0) return ;
+  //temporary end
+  //
   if(listener)
   {
     listener->statusChanged(topic,PublishStatus::Success);
@@ -117,7 +171,7 @@ void KooyHub::publish(const std::string &aTopic)
 
 void KooyHub::statusChanged(const std::string &aTopic,const PublishStatus &aStatus)
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+//  std::cout<<__PRETTY_FUNCTION__<<std::endl;
   if(aStatus==PublishStatus::Success)
   {
     std::cout<<aTopic<< ": Publish Successful >"<<std::endl;
@@ -140,13 +194,13 @@ void KooyHub::publisherPoolCleanup()
     Publisher *p=it->second;
     if(p && !p->isActive())
     {
-     // std::cout << it->first<<" is passive and to be deleted"<<std::endl;
+      // std::cout << it->first<<" is passive and to be deleted"<<std::endl;
       delete p;
       it=pubPool.erase(it);
     }
     else
     {
-     // std::cout<<it->first<< "Is still active"<<std::endl;
+      // std::cout<<it->first<< "Is still active"<<std::endl;
       ++it;
     }
 
