@@ -95,8 +95,8 @@ class Publisher
   private:
     void run();
   private:
-    std::shared_ptr<std::thread> runner;
-    std::shared_ptr<PublisherListener> listener;
+    std::thread runner;
+    PublisherListener* listener;
     std::string topic;
     std::string ipAddress;
     int port;
@@ -125,7 +125,7 @@ class KooyHub:public PublisherListener,public SubscribeListener
   private:
 
     //At a single point of time , there is a chance that muliple request can come so using a thread pool approach
-    std::map<std::string,std::shared_ptr<Publisher> > pubPool;
+    std::map<std::string,Publisher* > pubPool;
     std::mutex cleanupMutex;
     std::shared_ptr<Subscriber> subscriber;
     std::string ipAddress;

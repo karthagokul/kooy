@@ -19,6 +19,7 @@
 
 #include "kooyhub.h"
 #include <future>
+#include <unistd.h>
 
 Subscriber::Subscriber(SubscribeListener *aListener, const std::string &aIpAddr,const int &aPort)
   :listener(aListener),ipAddress(aIpAddr),port(aPort)
@@ -28,13 +29,13 @@ Subscriber::Subscriber(SubscribeListener *aListener, const std::string &aIpAddr,
 
 void Subscriber::exec()
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+ // std::cout<<__PRETTY_FUNCTION__<<std::endl;
   runner=std::make_shared<std::thread>(&Subscriber::run,this);
 }
 
 void Subscriber::run()
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
 }
 
 Publisher::Publisher(PublisherListener *aListener, const std::string &aIpAddr,const int &aPort)
@@ -44,6 +45,7 @@ Publisher::Publisher(PublisherListener *aListener, const std::string &aIpAddr,co
 }
 Publisher::~Publisher()
 {
+  runner.join();
   std::cout<<__PRETTY_FUNCTION__<<std::endl;
 }
 
@@ -55,12 +57,13 @@ void Publisher::setTopic(const std::string &aTopic)
 void Publisher::exec()
 {
   std::cout<<__PRETTY_FUNCTION__<<std::endl;
-  runner=std::make_shared<std::thread>(&Publisher::run,this);
+  runner=std::thread(&Publisher::run,this);
 }
 
 void Publisher::run()
 {
   std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  sleep(3);
   if(listener)
   {
     listener->statusChanged(topic,PublishStatus::Success);
@@ -100,8 +103,11 @@ void KooyHub::subscriptionMonitor()
 
 void KooyHub::publish(const std::string &aTopic)
 {
-  publisherPoolCleanup();
-  std::shared_ptr<Publisher> p=std::make_shared<Publisher>(this,ipAddress,port);
+  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+
+  //Cleanup the previous passive Requests
+  KooyHub::publisherPoolCleanup();
+  Publisher *p=new Publisher(this,ipAddress,port);
   //This is to avoid cleaing up the same topic request if it comes simultaenously
   std::string newkey=std::to_string(pubPool.size())+aTopic;
   p->setTopic(newkey);
@@ -114,11 +120,11 @@ void KooyHub::statusChanged(const std::string &aTopic,const PublishStatus &aStat
   std::cout<<__PRETTY_FUNCTION__<<std::endl;
   if(aStatus==PublishStatus::Success)
   {
-    std::cout<<aTopic<< ": Publish Successful"<<std::endl;
+    std::cout<<aTopic<< ": Publish Successful >"<<std::endl;
   }
   else
   {
-    std::cerr<<aTopic<< ": Publish Failed"<<std::endl;
+    std::cerr<<aTopic<< ": Publish Failed > "<<std::endl;
   }
   std::cout<<"Publish Pool Count : "<<pubPool.size()<<std::endl;
   return;
@@ -127,25 +133,26 @@ void KooyHub::statusChanged(const std::string &aTopic,const PublishStatus &aStat
 //TODO: We need to use a multimap , because if the key is same ? crash?
 void KooyHub::publisherPoolCleanup()
 {
-  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  cleanupMutex.lock();
+  //std::cout<<__PRETTY_FUNCTION__<<std::endl;
   for( auto it = pubPool.begin(); it != pubPool.end(); )
   {
-    std::shared_ptr<Publisher> p=it->second;
-    if(!p->isActive())
+    Publisher *p=it->second;
+    if(p && !p->isActive())
     {
-
-      std::cout << it->first<<" is passive and to be deleted"<<std::endl;
-      //why crash?
-     // pubPool.erase(pubPool.find( it->first));
+     // std::cout << it->first<<" is passive and to be deleted"<<std::endl;
+      delete p;
+      it=pubPool.erase(it);
     }
     else
     {
-      std::cout<<it->first<< "Is still active"<<std::endl;
-
+     // std::cout<<it->first<< "Is still active"<<std::endl;
+      ++it;
     }
-    ++it;
+
   }
-  std::cout<<"Publish Pool Count : "<<pubPool.size()<<std::endl;
+  //std::cout<<"Publish Pool Count : "<<pubPool.size()<<std::endl;
+  cleanupMutex.unlock();
 }
 
 void KooyHub::statusChanged(const SubscribeStatus &aStatus)
