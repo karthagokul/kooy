@@ -21,27 +21,55 @@
 #define KOOY_H
 
 #include <memory>
+class KooyInternal;
 
+/**
+ * @brief The KooyFragment struct
+ */
 struct KooyFragment
 {
-  char *topic;
-  void *data;
+    char *topic;
+    void *data;
 };
-class KooyInternal;
+
+/**
+ * @brief The KooyListener class
+ */
 class KooyListener
 {
+  public:
+    /**
+     * @brief onFragment
+     * @param aFragment
+     */
     virtual void onFragment(std::shared_ptr<KooyFragment> &aFragment)=0;
 };
 
+/**
+ * @brief The Kooy class
+ */
 class Kooy
 {
   public:
     Kooy();
+    /**
+     * @brief start
+     * @return
+     */
     bool start();
+    /**
+     * @brief stop
+     * @return
+     */
     bool stop();
+    /**
+     * @brief addListener
+     * @param aTopic
+     * @param aListener
+     */
     void addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener);
   private:
-    std::unique_ptr<KooyInternal> d;
+    std::shared_ptr<KooyInternal> d;
 
 };
 

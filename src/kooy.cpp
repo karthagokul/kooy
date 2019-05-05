@@ -18,19 +18,12 @@
 
 
 #include "kooy.h"
+#include "kooyhub.h"
 
-/**
- * @brief The KooyHub class
- * The hub is the centric component which is responsible to send & recive fragments from the other nodes. The hub processes and propogate the interested topic to the upper layer
- */
-class KooyHub
-{
-  public:
-    bool start();
-    bool stop();
-    bool settopics();
-};
+#include <unistd.h>
 
+#define PORT 5555
+#define SERVER "127.0.0.1"
 
 class KooyInternal
 {
@@ -38,11 +31,22 @@ class KooyInternal
     bool start();
     bool stop();
     void addListener(const char *aTopic,std::shared_ptr<KooyListener> &aListener);
+
+  private:
+    std::shared_ptr<KooyHub> hub;
 };
 
 bool KooyInternal::start()
 {
-
+  std::cout<<__PRETTY_FUNCTION__<<std::endl;
+  hub=std::make_shared<KooyHub>(SERVER,PORT);
+  hub->start();
+  //testing
+  sleep(1);
+  std::string t1="bedroom-light";
+  hub->publish(t1);
+ // std::string t2="kitchen-light";
+  hub->publish(t1);
 }
 
 bool KooyInternal::stop()
@@ -57,13 +61,14 @@ void KooyInternal::addListener(const char *aTopic,std::shared_ptr<KooyListener> 
 
 
 Kooy::Kooy()
-  :d(std::make_unique<KooyInternal>())
+  :d(std::make_shared<KooyInternal>())
 {
 
 }
 
 bool Kooy::start()
 {
+  std::cout<<__PRETTY_FUNCTION__<<std::endl;
   return d->start();
 }
 
